@@ -1,14 +1,39 @@
 {
-  "name": "electron",
+  "name": "@coqfu/mk1300v2-web-software",
   "productName": "MK1300 V2 Keyboard Software",
   "version": "1.0.2",
   "description": "MK1300 V2 Keyboard Software",
   "main": "main/index.js",
   "author": "© 2026 Ant Esports.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coqfu/mk1300v2-web-software.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "dependencies": {
     "cross-env": "^7.0.3",
-    "electron": "^44.1.0",
     "electron-squirrel-startup": "^1.0.0"
+  },
+  "devDependencies": {
+    "electron": "^44.1.0",
+    "electron-builder": "^26.15.3"
+  },
+  "scripts": {
+    "build:all": "electron-builder -mwl zip"
+  },
+  "build": {
+    "appId": "com.antesports.mk1300v2",
+    "mac": {
+      "target": "zip"
+    },
+    "win": {
+      "target": "zip"
+    },
+    "linux": {
+      "target": "zip"
+    }
   }
 }
