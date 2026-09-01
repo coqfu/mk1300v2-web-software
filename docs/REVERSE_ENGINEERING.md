@@ -60,6 +60,29 @@ There is also a hidden bootloader device used specifically for flashing these `.
 
 ## Path to Open Source
 To fully open-source this keyboard (e.g., to build a QMK or ZMK firmware replacement, or an open-source driver like OpenRGB):
-1. **USB Sniffing:** We can use Wireshark + USBPcap to sniff the packets sent between this software and the keyboard (specifically targeting `VID 0x36ae`).
+1. **USB Sniffing:**
+- [ ] Capture Wireshark PCAPs of the RGB commands.
+- [ ] Cross-reference the Youhua firmware string tables with STM32/M0 bootloader behavior.
+- [ ] Build the standalone `mk1300` Python CLI.
+
 2. **Packet Mapping:** Once we intercept the packets, we can map out which bytes correspond to which RGB modes and keymap indices.
 3. **OpenRGB Integration:** With the packet structure known, we can easily write a device profile for OpenRGB using the `0x36ae` Vendor ID, removing the need for this Electron app entirely!
+
+## The "Known Unknowns"
+
+Based on our exhaustive static extraction, here is what we explicitly **do not know yet**, and why static analysis cannot answer it:
+
+### 1. Software vs. Firmware RGB Animation
+**Status:** UNKNOWN
+* **Why static analysis failed:** We extracted the names of 13 RGB effects and the command (`0x06 0x12`) to send bulk RGB layout chunks. However, we cannot tell if the OEM software sends one opcode to trigger a hardware-rendered "Ripple" effect, or if the software renders the Ripple effect on the PC and spams `0x06 0x12` chunk updates 60 times a second to the board.
+* **Resolution:** Live USB capture (Wireshark) while activating an effect in the OEM UI.
+
+### 2. Output Report / `receiveFeatureReport` Opcode Matching
+**Status:** UNKNOWN
+* **Why static analysis failed:** The minified JS contains the `inputreport` event handler that parses 64-byte `DataView` responses, but the minification obfucates which byte maps to which specific error/success status.
+* **Resolution:** Send a malformed command manually via WebHID or a Python script and log the raw 64-byte response.
+
+### 3. IAP Bootloader Checksums
+**Status:** UNKNOWN
+* **Why static analysis failed:** We found the firmware CDN (e.g. `software-1304108977.cos.ap-guangzhou.myqcloud.com/sidehub/firmware/...`) and the `[0x5A, 0xA0]` command that kicks the keyboard into bootloader mode (`VID: 05566`, `PID: 0x0009`). However, the actual logic for chunking the downloaded `.bin` file and verifying its checksum is deeply buried in a Webpack chunk (`page-c8a291f1b4ca5560.js`) that resists simple AST extraction.
+* **Resolution:** Download a firmware `.zip` from the CDN, extract the `.bin`, and analyze it using `binwalk` and `strings` to see if it's raw STM32 firmware or obfuscated.
