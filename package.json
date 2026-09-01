@@ -1,0 +1,14 @@
+{
+  "name": "electron",
+  "productName": "MK1300 V2 Keyboard Software",
+  "version": "1.0.2",
+  "description": "MK1300 V2 Keyboard Software",
+  "main": "main/index.js",
+  "author": "© 2026 Ant Esports.",
+  "license": "MIT",
+  "dependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^44.1.0",
+    "electron-squirrel-startup": "^1.0.0"
+  }
+}
