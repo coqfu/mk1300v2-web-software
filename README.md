@@ -1,64 +1,61 @@
-# MK1300v2 Web Software
+# MK1300 V2 - Open Source Enablement Project
 
-Welcome to the MK1300v2 Keyboard Software repository! This is a comprehensive Electron-based application that manages and configures the MK1300v2 mechanical keyboard.
+This repository is dedicated to reverse-engineering the **Ant Esports MK1300 V2** mechanical keyboard to make it completely open and community-accessible.
 
-## How the Keyboard Works
+## What is MK1300 V2?
+The MK1300 V2 is an affordable mechanical keyboard that ships with a proprietary, Windows-only configuration software for controlling RGB lighting and key mappings.
 
-The MK1300v2 keyboard utilizes a modern WebHID architecture to interface directly with this Electron desktop application. Instead of relying on traditional, OS-specific USB drivers which can be clunky or restrictive, the software reads and writes HID (Human Interface Device) reports securely and efficiently to manage the state of the keyboard.
+## Why reverse engineer it?
+The end goal is simple: **The MK1300 V2 should not depend on proprietary Windows software to remain useful.** 
 
-### Communication Flow:
-1. **Device Connection:** The Electron main process intercepts the `select-hid-device` event. It verifies the keyboard's Vendor ID (VID) and Product ID (PID) to securely grant WebHID permission.
-2. **Frontend Interface:** The renderer (built in `build/index.html`) visually maps the keys, lighting effects, and macros. It translates your clicks and customizations into HID byte commands.
-3. **Hardware Storage:** When you hit "Apply" or "Save", the software sends these custom reports directly into the keyboard's onboard memory. This allows your configurations (macros, RGB patterns, keymaps) to persist even if you plug the keyboard into a different computer without the software installed.
+We are reverse engineering the hardware identifiers, USB HID communication protocols, and firmware update architecture to provide the community with everything needed to maintain, develop, and potentially replace its software and firmware stack. 
 
----
+This enables:
+* Using and configuring the keyboard properly on **Linux** and **macOS**.
+* Controlling the RGB lighting directly via **OpenRGB**.
+* Building independent, open-source CLI tools.
+* Ensuring the keyboard remains functional and configurable even if the manufacturer drops support.
 
-## Configuration: `keymap.json`
+## What has already been discovered?
+Through static analysis of the OEM software, we have discovered:
+* **The True OEM:** The software is a generic tool supporting multiple keyboards. The MK1300 V2 is heavily implied to be a rebranded **Youhua Z61-ARGB**.
+* **Device Identifiers:** We have mapped the hidden Vendor IDs and Product IDs. The active configuration targets `VID: 0x36AE` and `PID: 0xFEAD`.
+* **Firmware Mappings:** The firmware update metadata has been extracted, showing a hidden bootloader device endpoint used for flashing `.bin` files.
 
-A core feature of the MK1300v2 is its fully programmable keymap structure. The layout and configurations can be exported and imported using a standard JSON format (`keymap.json`).
+## Roadmap & Status
 
-### Structure of `keymap.json`
-An example `keymap.json` is provided in the repository. Here is a breakdown of its primary components:
+- [x] Analyze vendor application
+- [x] Discover hidden device identifiers
+- [x] Identify firmware update metadata
+- [x] Document initial reverse-engineering findings
+- [ ] Fully map USB protocol
+- [ ] Build standalone Linux tool
+- [ ] Verify RGB commands
+- [ ] Document HID protocol
+- [ ] Implement OpenRGB support
+- [ ] Investigate firmware architecture
+- [ ] Investigate alternative firmware feasibility
+- [ ] Build automated protocol tests
+- [ ] Community hardware verification
 
-* **`vendorId` / `productId`:** Identifies the specific hardware revision.
-* **`layers`:** The keyboard supports multiple functional layers (e.g., Base Layer, FN Layer). 
-  * Each layer contains a 2D array (`keys`) mapping to physical switches.
-  * `"TRNS"` (Transparent) signifies that the key will fall back to the function defined in the layer directly underneath it.
-* **`macros`:** A list of automated sequences. You can record down/up key events and assign them an ID. These IDs can then be mapped to any physical key on any layer.
-* **`lighting`:** Controls the hardware RGB controller (modes like `RGB_WAVE`, static colors, brightness, and effect speeds).
+*(Note: Items are only marked complete when physically verified and peer-reviewed.)*
 
----
+## How can someone help?
+We need the community's help! If you own an MK1300 V2, you can contribute by:
+1. **Sniffing USB Traffic:** Capture the USB packets sent by the proprietary software using Wireshark and `USBPcap` (Windows) or `usbmon` (Linux). 
+2. **Physical Teardown:** Open the keyboard and identify the MCU and LED controller chips printed on the PCB.
+3. **Writing Tools:** Help draft the standalone Python/Rust CLI tool once the protocol commands are mapped.
 
-## Getting Started & Building the App
+Check out our [GitHub Issues](https://github.com/coqfu/mk1300v2-web-software/issues) to find tasks labeled `[RESEARCH]`, `[HARDWARE]`, or `[FEATURE]`.
 
-This app can be compiled as a standalone desktop application for Linux, macOS, and Windows. 
+## Documentation Hub
+Explore the `/docs` directory for in-depth technical breakdowns:
+* **[Hardware Profile](docs/HARDWARE.md):** Known VIDs, PIDs, and internal components.
+* **[USB Protocol](docs/PROTOCOL.md):** The mapped HID command structure.
+* **[Firmware Analysis](docs/FIRMWARE.md):** Metadata and bootloader logic.
+* **[Linux Support](docs/LINUX.md):** Steps for getting it working natively on Linux.
+* **[OpenRGB](docs/OPENRGB.md):** Our plan to integrate native lighting control.
+* **[Reverse Engineering Log](docs/REVERSE_ENGINEERING.md):** Detailed logs of our discoveries and methods.
 
-### Prerequisites
-* Node.js (v16 or higher recommended)
-* npm 
-
-### Installation
-Clone the repository and install the dependencies:
-```bash
-git clone https://github.com/coqfu/mk1300v2-web-software.git
-cd mk1300v2-web-software
-npm install
-```
-
-### Building the Application
-We use `electron-builder` to package the app into distributable formats (`.zip`, installers, etc.) for various operating systems.
-
-To compile for all platforms (Linux, macOS, Windows) at once:
-```bash
-npm run build:all
-```
-Once the build process completes, check the `dist/` folder for the compiled applications and zip files.
-
-### Development
-To run the software locally in a development environment:
-```bash
-NODE_ENV=development npm start
-```
-
-## License
-This project is open-source and licensed under the MIT License. See the `LICENSE` file for details.
+## Disclaimer
+This project is not affiliated with Ant Esports or the original OEM. All reverse engineering is done in a clean-room environment for interoperability purposes. **Do not flash unknown firmware to your keyboard.**
