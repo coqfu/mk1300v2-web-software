@@ -221,6 +221,89 @@ if (command === 'info') {
             console.error(e.message);
         }
     })();
+} else if (command === 'test-single-rgb') {
+    (async () => {
+        try {
+            const transport = new NodeHidTransport();
+            await transport.open();
+
+            const getRgbColor = async (index: number) => {
+                const packet = packets.buildReadRgbMap(0);
+                await transport.write(packet);
+                const response = await transport.read(2000);
+                const parsed = parseResponse(response);
+                // Data starts at byte 7 of payload (which is byte 9 of packet).
+                // Wait, parsed.payload has chunk offset at byte 4 of packet.
+                // In responses.ts, payload is report.slice(3).
+                // So index 0 is byte 3 of packet.
+                // Byte 9 of packet is index 6 of payload.
+                // So key 0 is at parsed.payload[6], [7], [8].
+                const offset = 6 + (index * 3);
+                return {
+                    r: parsed.payload[offset] || 0,
+                    g: parsed.payload[offset + 1] || 0,
+                    b: parsed.payload[offset + 2] || 0
+                };
+            };
+
+            const originalRgb = await getRgbColor(0);
+            console.log(`\nTarget key: ESC`);
+            console.log(`Key index: 0`);
+            console.log(`Current RGB: ${originalRgb.r.toString(16).padStart(2, '0').toUpperCase()} ${originalRgb.g.toString(16).padStart(2, '0').toUpperCase()} ${originalRgb.b.toString(16).padStart(2, '0').toUpperCase()}`);
+            console.log(`New RGB: FF 00 00\n`);
+
+            const testColor = { r: 255, g: 0, b: 0 };
+            const writePacket = packets.buildSetSingleKeyRgb(0, testColor.r, testColor.g, testColor.b);
+
+            // Safety Checks
+            if (writePacket[2] !== 0x14 || writePacket.length !== 65) {
+                console.error("ABORT: Packet safety check failed.");
+                process.exit(1);
+            }
+
+            console.log("Command:\nSET_SINGLE_KEY_RGB\n");
+            console.log("Key:\nESC\n");
+            console.log("Index:\n0\n");
+            console.log("RGB:\nFF 00 00\n");
+            console.log("Report:\n65 bytes\n");
+            console.log(`Packet:\n${writePacket.toString('hex').match(/.{1,2}/g)?.join(' ')}\n`);
+
+            console.log("Sending write packet...");
+            await transport.write(writePacket);
+            
+            console.log("Waiting for write to apply (500ms)...");
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const verifyRgb = await getRgbColor(0);
+            console.log(`\nRead-back RGB: ${verifyRgb.r.toString(16).padStart(2, '0').toUpperCase()} ${verifyRgb.g.toString(16).padStart(2, '0').toUpperCase()} ${verifyRgb.b.toString(16).padStart(2, '0').toUpperCase()}`);
+
+            if (verifyRgb.r !== testColor.r || verifyRgb.g !== testColor.g || verifyRgb.b !== testColor.b) {
+                console.error("Warning: Read-back did not match expected test color.");
+            } else {
+                console.log("Read-back verification SUCCESS.");
+            }
+
+            console.log("\nRestoring original color...");
+            const restorePacket = packets.buildSetSingleKeyRgb(0, originalRgb.r, originalRgb.g, originalRgb.b);
+            await transport.write(restorePacket);
+
+            console.log("Waiting for restore to apply (500ms)...");
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const finalRgb = await getRgbColor(0);
+            console.log(`\nFinal read-back RGB: ${finalRgb.r.toString(16).padStart(2, '0').toUpperCase()} ${finalRgb.g.toString(16).padStart(2, '0').toUpperCase()} ${finalRgb.b.toString(16).padStart(2, '0').toUpperCase()}`);
+
+            if (finalRgb.r !== originalRgb.r || finalRgb.g !== originalRgb.g || finalRgb.b !== originalRgb.b) {
+                console.error("Warning: Final read-back did not match original color.");
+            } else {
+                console.log("Restore verification SUCCESS.");
+            }
+
+            await transport.close();
+        } catch (e: any) {
+            console.error(e.message);
+        }
+    })();
 } else if (command === 'inspect') {
     const subcommand = positionals[1];
     if (subcommand === 'rgb' && positionals[2] === 'static') {

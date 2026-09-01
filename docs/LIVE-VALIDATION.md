@@ -67,3 +67,40 @@ We have firmly established the communication link.
 
 ### Analysis of `ReadRgb` (0x06 0x13)
 The captured RGB chunks return literal arrays of `R G B` values representing the current color state or the static layout map of the keyboard. Since the data is returned in bulk chunks representing per-key colors (3 bytes per key), the corresponding write command (`0x06 0x12 0x3B`) almost certainly pushes a static 1:1 color map to the keyboard. If complex dynamic effects (like ripple/wave) exist, they may be calculated by the OEM software and continuously streamed using this chunk structure.
+
+---
+
+## Test 004 — Single-Key RGB Write
+
+**Device:** MK1300 V2  
+**VID:** 36AE  
+**PID:** FEAD  
+**Key:** ESC  
+**Index:** 0  
+
+**Original RGB:** `55 FF FF` (Read back safely before any operations)  
+**Test RGB:** `FF 00 00`
+
+### Execution
+
+**Write packet sent:**
+`00 06 14 03 00 00 00 00 00 ff 00 00 ...` (65 bytes)
+
+**Write response:** (No response awaited, waited 500ms)
+
+**Read-back:**
+Verified `FF 00 00` correctly using `ReadRgb` chunk 0.
+
+**Restore packet sent:**
+`00 06 14 03 00 00 00 00 00 55 ff ff ...` (65 bytes)
+
+**Final read-back:**
+Verified `55 FF FF` correctly using `ReadRgb` chunk 0.
+
+### Conclusion
+
+**Result:** PASS  
+**Unexpected behavior:** The initial static analysis of `CMD_SET_KEY_RGB` placed the RGB triplets at bytes 8, 9, 10. However, live testing (coupled with the `ReadRgb` offset logic) proved the triplets belong at bytes 9, 10, 11 for the write packet as well. The static logic was corrected and successfully applied.
+
+**Firmware:** UNTOUCHED  
+**IAP:** UNTOUCHED

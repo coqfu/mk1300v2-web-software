@@ -26,9 +26,10 @@ export function buildSetSingleKeyRgb(keyIndex: number, r: number, g: number, b: 
     
     packet[6] = 0x00;
     packet[7] = 0x00;
-    packet[8] = r;
-    packet[9] = g;
-    packet[10] = b;
+    packet[8] = 0x00;
+    packet[9] = r;
+    packet[10] = g;
+    packet[11] = b;
     return packet;
 }
 
