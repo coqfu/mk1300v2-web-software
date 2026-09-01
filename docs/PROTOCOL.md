@@ -2,33 +2,30 @@
 
 This document maps the communication protocol used by the MK1300 V2 keyboard to interact with the host system.
 
-> **Status:** The protocol is currently **UNKNOWN** and requires live USB packet capture.
+> **Status:** The protocol has been successfully statically extracted from the OEM application.
 
-## Setup for Protocol Discovery
+## Transport Specifications
 
-To discover and document the protocol, we will need to intercept the HID reports sent by the proprietary Windows software.
-
-1. **Linux Users:** Use `usbmon` combined with Wireshark to capture HID output reports.
-2. **Windows Users:** Use Wireshark with USBPcap.
-3. Filter traffic by the device Vendor ID: `0x36AE`.
-
-## Known Endpoints
-
-Based on the OEM software, the configuration happens over a custom HID usage page:
 * **Usage Page:** `0xFF00`
-* **Usage:** `0x0002`
+* **Usage:** `0x0002` (or `0x0001` for bootloader)
+* **Report ID:** `0x00`
+* **Packet Length:** 65 Bytes (1 byte Report ID + 64 bytes Payload)
 
-## Identified Commands (TBD)
+## Identified Commands
 
-The following commands need to be identified through packet sniffing:
-* Device initialization
-* Reading firmware version
-* Setting RGB effect mode
-* Setting RGB brightness
-* Setting static RGB color
-* Per-key RGB manipulation
-* Reading current keymap
-* Writing keymap changes
-* Saving configuration to onboard EEPROM
+All standard commands begin with the byte `0x06`. 
 
-*(Note: Command tables will be added here as they are discovered.)*
+| Command Name | Byte 0 | Byte 1 | Byte 2 | Parameters |
+|--------------|--------|--------|--------|------------|
+| Get Config | `0x06` | `0x05` | - | - |
+| Set Keymap | `0x06` | `0x10` | `0x07` | `key_offset`, `layer`, `type`, `keycode` |
+| Set Batch RGB | `0x06` | `0x12` | `0x3B` | `chunk_offset`, `[RGB array]` |
+| Set Single RGB| `0x06` | `0x14` | `0x03` | `key_offset`, `R`, `G`, `B` |
+| Read Keymap | `0x06` | `0x08` | `0x3A` | `chunk_offset`, `layer` |
+| Read RGB Map | `0x06` | `0x13` | `0x3A` | `chunk_offset` |
+| Set Auto Sleep| `0x06` | `0xFC` | `0x02` | `timeL`, `timeH` |
+| Set Profile | `0x06` | `0xFB` | `profile_id` | - |
+| Factory Reset | `0x06` | `0x0F` | `0xFF` | - |
+| **Enter IAP** | `0x5A` | `0xA0` | - | Bootloader Mode Trigger |
+
+For the complete, machine-readable protocol layout, refer to `protocol/commands.json`.

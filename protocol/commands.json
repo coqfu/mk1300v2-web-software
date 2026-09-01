@@ -1,0 +1,105 @@
+{
+  "commands": {
+    "get_keyboard_config": {
+      "opcode": "0x06",
+      "direction": "host_to_device",
+      "report_id": "0x00",
+      "length": 65,
+      "fields": ["0x06", "0x05"],
+      "response": "tbd",
+      "source": "build/_next/static/chunks/app/page-e2712c16b4e30f31.js",
+      "verified": false,
+      "description": "Reads the core device configuration block."
+    },
+    "set_key_info": {
+      "opcode": "0x06",
+      "direction": "host_to_device",
+      "report_id": "0x00",
+      "length": 65,
+      "fields": ["0x06", "0x10", "0x07", "(key_index*4) & 0xFF", "(key_index*4) >> 8", "layer", "0x00", "type", "code1", "code2", "code3"],
+      "source": "build/_next/static/chunks/app/page-e2712c16b4e30f31.js",
+      "verified": false,
+      "description": "Sets mapping for a single key or macro."
+    },
+    "set_key_colors_batch": {
+      "opcode": "0x06",
+      "direction": "host_to_device",
+      "report_id": "0x00",
+      "length": 65,
+      "fields": ["0x06", "0x12", "0x3B", "chunk_offset & 0xFF", "chunk_offset >> 8", "...RGB_DATA..."],
+      "source": "build/_next/static/chunks/app/page-e2712c16b4e30f31.js",
+      "verified": false,
+      "description": "Sets the RGB colors for a batch of keys at once."
+    },
+    "set_single_key_color": {
+      "opcode": "0x06",
+      "direction": "host_to_device",
+      "report_id": "0x00",
+      "length": 65,
+      "fields": ["0x06", "0x14", "0x03", "(key_index*3) & 0xFF", "(key_index*3) >> 8", "0x00", "0x00", "R", "G", "B"],
+      "source": "build/_next/static/chunks/app/page-e2712c16b4e30f31.js",
+      "verified": false,
+      "description": "Sets the RGB color for a specific physical key."
+    },
+    "get_key_layout_chunk": {
+      "opcode": "0x06",
+      "direction": "host_to_device",
+      "report_id": "0x00",
+      "length": 65,
+      "fields": ["0x06", "0x08", "0x3A", "chunk_offset & 0xFF", "chunk_offset >> 8", "0x00", "layer"],
+      "source": "build/_next/static/chunks/app/page-e2712c16b4e30f31.js",
+      "verified": false,
+      "description": "Reads a chunk of the key mapping layout from the keyboard."
+    },
+    "get_rgb_layout_chunk": {
+      "opcode": "0x06",
+      "direction": "host_to_device",
+      "report_id": "0x00",
+      "length": 65,
+      "fields": ["0x06", "0x13", "0x3A", "chunk_offset & 0xFF", "chunk_offset >> 8"],
+      "source": "build/_next/static/chunks/app/page-e2712c16b4e30f31.js",
+      "verified": false,
+      "description": "Reads the current RGB mapping layout from the keyboard."
+    },
+    "set_auto_sleep_time": {
+      "opcode": "0x06",
+      "direction": "host_to_device",
+      "report_id": "0x00",
+      "length": 65,
+      "fields": ["0x06", "0xFC", "0x02", "0x00", "0x00", "time_L", "time_H"],
+      "source": "build/_next/static/chunks/app/page-e2712c16b4e30f31.js",
+      "verified": false,
+      "description": "Configures wireless sleep timeout."
+    },
+    "restore_factory_settings": {
+      "opcode": "0x06",
+      "direction": "host_to_device",
+      "report_id": "0x00",
+      "length": 65,
+      "fields": ["0x06", "0x0F", "0xFF"],
+      "source": "build/_next/static/chunks/app/page-e2712c16b4e30f31.js",
+      "verified": false,
+      "description": "Triggers a full reset of the keyboard EEPROM to defaults."
+    },
+    "set_current_profile": {
+      "opcode": "0x06",
+      "direction": "host_to_device",
+      "report_id": "0x00",
+      "length": 65,
+      "fields": ["0x06", "0xFB", "profile_id"],
+      "source": "build/_next/static/chunks/app/page-e2712c16b4e30f31.js",
+      "verified": false,
+      "description": "Switches the active onboard profile layer."
+    },
+    "go_to_iap": {
+      "opcode": "0x5A",
+      "direction": "host_to_device",
+      "report_id": "0x00",
+      "length": 65,
+      "fields": ["0x5A", "0xA0"],
+      "source": "build/_next/static/chunks/app/page-e2712c16b4e30f31.js",
+      "verified": false,
+      "description": "Triggers reboot into In-Application Programming (IAP) Bootloader mode for firmware updates."
+    }
+  }
+}
