@@ -39,7 +39,12 @@ if (!command) {
 
 printDryRunBanner();
 
-if (command === 'info' || command === 'devices') {
+import { NodeHidTransport } from './hid/NodeHidTransport.js';
+import * as fs from 'fs';
+import * as path from 'path';
+import { parseResponse } from './protocol/responses.js';
+
+if (command === 'info') {
     const info = {
         device: "MK1300 V2",
         vid: MK1300_VID.toString(16).toUpperCase(),
@@ -55,6 +60,64 @@ if (command === 'info' || command === 'devices') {
         console.log(`Target Device: MK1300 V2`);
         console.log(`VID: ${info.vid} | PID: ${info.pid}`);
     }
+} else if (command === 'devices') {
+    try {
+        const transport = new NodeHidTransport();
+        transport.enumerate();
+    } catch (e: any) {
+        console.error(e.message);
+    }
+} else if (command === 'get-config') {
+    (async () => {
+        try {
+            const transport = new NodeHidTransport();
+            await transport.open();
+
+            const packet = packets.buildGetConfig();
+            console.log("\nCommand:\nGET_CONFIG\n");
+            console.log(`Length:\n${packet.length} bytes\n`);
+            console.log(`Bytes:\n${packet.toString('hex').match(/.{1,2}/g)?.join(' ')}\n`);
+
+            await transport.write(packet);
+            console.log("Waiting for response...");
+            
+            const response = await transport.read();
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const dataPath = path.join(process.cwd(), '..', 'research', 'live-captures');
+            
+            if (!fs.existsSync(dataPath)) {
+                fs.mkdirSync(dataPath, { recursive: true });
+            }
+            
+            const binFile = path.join(dataPath, `get-config-${timestamp}.bin`);
+            const jsonFile = path.join(dataPath, `get-config-${timestamp}.json`);
+            
+            fs.writeFileSync(binFile, response);
+            
+            const parsed = parseResponse(response);
+            const resultData = {
+                timestamp,
+                reportLength: response.length,
+                rawBytes: response.toString('hex'),
+                parsed
+            };
+            
+            fs.writeFileSync(jsonFile, JSON.stringify(resultData, null, 2));
+            
+            console.log("\n=== Response Received ===");
+            console.log(`Length: ${response.length}`);
+            console.log(`Raw: ${response.toString('hex')}`);
+            console.log(`\n=== Parsed ===`);
+            console.log(`Opcode: 0x${parsed.opcode.toString(16).padStart(2, '0')}`);
+            console.log(`Status: 0x${parsed.status.toString(16).padStart(2, '0')}`);
+            console.log(`Payload length: ${parsed.payload.length}`);
+            
+            await transport.close();
+            
+        } catch (e: any) {
+            console.error(e.message);
+        }
+    })();
 } else if (command === 'inspect') {
     const subcommand = positionals[1];
     if (subcommand === 'rgb' && positionals[2] === 'static') {
