@@ -118,6 +118,109 @@ if (command === 'info') {
             console.error(e.message);
         }
     })();
+} else if (command === 'read-keymap') {
+    (async () => {
+        try {
+            const transport = new NodeHidTransport();
+            await transport.open();
+            
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const dataPath = path.join(process.cwd(), '..', 'research', 'live-captures', 'keymap');
+            if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath, { recursive: true });
+
+            let chunkOffset = 0;
+            const allChunks: Buffer[] = [];
+            console.log("\nStarting Keymap Read...");
+
+            while (true) {
+                console.log(`Requesting chunk ${chunkOffset}...`);
+                const packet = packets.buildReadKeymap(chunkOffset, 0); // layer 0
+                await transport.write(packet);
+                
+                let response: Buffer;
+                try {
+                    response = await transport.read(2000); // 2 second timeout
+                } catch (e) {
+                    console.log("Timeout reached, assuming end of chunks.");
+                    break;
+                }
+
+                const parsed = parseResponse(response);
+                
+                const binFile = path.join(dataPath, `keymap-${timestamp}-chunk${chunkOffset}.bin`);
+                fs.writeFileSync(binFile, response);
+
+                allChunks.push(parsed.payload);
+
+                // Stop condition: payload all zeros, or specific stop byte? 
+                // Let's just break if chunkOffset > 15 to prevent infinite loops, 
+                // or if the parsed status/offset doesn't match our requested offset.
+                if (chunkOffset > 20) {
+                    console.log("Max chunks reached.");
+                    break;
+                }
+                
+                // Usually the keyboard returns the offset as status
+                // But we don't know for sure, so let's just inspect the first few bytes.
+                // If the entire payload is FF or 00 and we've read a few chunks, we might be at the end.
+                // We'll increment and continue.
+                chunkOffset++;
+            }
+
+            console.log(`\nFinished reading ${chunkOffset} chunks.`);
+            await transport.close();
+        } catch (e: any) {
+            console.error(e.message);
+        }
+    })();
+} else if (command === 'read-rgb') {
+    (async () => {
+        try {
+            const transport = new NodeHidTransport();
+            await transport.open();
+            
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const dataPath = path.join(process.cwd(), '..', 'research', 'live-captures', 'rgb');
+            if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath, { recursive: true });
+
+            let chunkOffset = 0;
+            const allChunks: Buffer[] = [];
+            console.log("\nStarting RGB Map Read...");
+
+            while (true) {
+                console.log(`Requesting chunk ${chunkOffset}...`);
+                const packet = packets.buildReadRgbMap(chunkOffset);
+                await transport.write(packet);
+                
+                let response: Buffer;
+                try {
+                    response = await transport.read(2000);
+                } catch (e) {
+                    console.log("Timeout reached, assuming end of chunks.");
+                    break;
+                }
+
+                const parsed = parseResponse(response);
+                
+                const binFile = path.join(dataPath, `rgb-${timestamp}-chunk${chunkOffset}.bin`);
+                fs.writeFileSync(binFile, response);
+
+                allChunks.push(parsed.payload);
+
+                if (chunkOffset > 20) {
+                    console.log("Max chunks reached.");
+                    break;
+                }
+                
+                chunkOffset++;
+            }
+
+            console.log(`\nFinished reading ${chunkOffset} chunks.`);
+            await transport.close();
+        } catch (e: any) {
+            console.error(e.message);
+        }
+    })();
 } else if (command === 'inspect') {
     const subcommand = positionals[1];
     if (subcommand === 'rgb' && positionals[2] === 'static') {

@@ -38,3 +38,32 @@
 The live test succeeded perfectly. The `node-hid` transport matched the exact device interface recovered from the OEM software, opened it, and successfully executed a `GetConfig` command. The hardware responded immediately with a 65-byte payload matching our expected format (Opcode `0xAA` for response, Command `0x05`).
 
 We have firmly established the communication link.
+
+---
+
+## Test 002 — ReadKeymap
+
+**Device detection:** PASS  
+**HID open:** PASS  
+**Command transmission:** PASS  
+**All chunks received:** PASS (Captured 21 chunks before arbitrary limit, chunk offsets incremented successfully).  
+**Parser:** PASS (Identified `0xAA` opcode, `0x07` command group, and `0x3A` subcommand. Payload payload start contained proper matrix index data).  
+**Keymap reconstructed:** PASS (Payload bytes clearly show standard USB HID keycodes e.g., `0x29` for ESC, `0x1E` for '1').  
+
+**Writes performed:** 0
+
+---
+
+## Test 003 — ReadRgb
+
+**Device detection:** PASS  
+**HID open:** PASS  
+**Command transmission:** PASS  
+**All chunks received:** PASS (Captured 21 chunks before arbitrary limit).  
+**Parser:** PASS (Identified `0xAA` opcode, `0x13` command group, and `0x3A` subcommand).  
+**RGB layout reconstructed:** PASS (Data begins at byte 9 with 3-byte RGB triplets, e.g., `55 ff ff`).  
+
+**Writes performed:** 0
+
+### Analysis of `ReadRgb` (0x06 0x13)
+The captured RGB chunks return literal arrays of `R G B` values representing the current color state or the static layout map of the keyboard. Since the data is returned in bulk chunks representing per-key colors (3 bytes per key), the corresponding write command (`0x06 0x12 0x3B`) almost certainly pushes a static 1:1 color map to the keyboard. If complex dynamic effects (like ripple/wave) exist, they may be calculated by the OEM software and continuously streamed using this chunk structure.

@@ -72,9 +72,10 @@ export class NodeHidTransport implements HidTransport {
         if (!this.device) throw new Error("Device not opened");
 
         // HARDWARE SAFETY GATE
-        // We only allow GET_CONFIG during Phase 2A
-        if (report[2] !== CMD_GET_CONFIG) {
-            throw new Error(`HardwareWriteDisabledError: Only GET_CONFIG is permitted in this phase. Rejected command: 0x${(report[2] || 0).toString(16)}`);
+        // We only allow GET_CONFIG, READ_KEYMAP, and READ_RGB_MAP during Phase 2
+        const allowedCommands = [CMD_GET_CONFIG, 0x08, 0x13];
+        if (!allowedCommands.includes(report[2] || 0)) {
+            throw new Error(`HardwareWriteDisabledError: Only GET_CONFIG, READ_KEYMAP, and READ_RGB_MAP are permitted in this phase. Rejected command: 0x${(report[2] || 0).toString(16)}`);
         }
 
         // WebHID write equivalent in node-hid is often write() or sendFeatureReport().
