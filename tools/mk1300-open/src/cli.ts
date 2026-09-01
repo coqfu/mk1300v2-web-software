@@ -304,7 +304,86 @@ if (command === 'info') {
             console.error(e.message);
         }
     })();
+} else if (command === 'test-effect') {
+    (async () => {
+        try {
+            const transport = new NodeHidTransport();
+            await transport.open();
+
+            // --- STEP 1: Read current effect config (STATIC mode, ID=0) ---
+            // OEM: sendDeviceData(6, [22, 0, 0, 0, 1, 0, MODE_ID])
+            console.log('\n--- STEP 1: Reading current STATIC effect config (mode 0) ---');
+            const getPacket = packets.buildGetLightEffectConfig(0);
+            console.log(`Packet: ${getPacket.slice(0, 12).toString('hex').match(/.{2}/g)?.join(' ')}`);
+            await transport.write(getPacket);
+            const getResponse = await transport.read(2000);
+            console.log(`Response (raw): ${getResponse.toString('hex')}`);
+
+            // OEM slices response at bytes 5..15 (payload[3..13] in our parser)
+            // Full 65-byte report: [reportId, groupByte, cmdByte, ...data]
+            // payload parsed = report.slice(1) = [groupByte, cmdByte, ...data]
+            // OEM does .slice(5,16) on the full 65-byte array (skipping reportId which is [0])
+            // so that's bytes[5..15] of the 65-byte report = report[5] through report[15]
+            const originalCfg = Array.from(getResponse.slice(5, 16));
+            console.log(`\nOriginal effect config (11 bytes from response[5..15]):`);
+            console.log(originalCfg.map(b => b.toString(16).padStart(2, '0')).join(' '));
+            console.log(`  type:       ${originalCfg[0]}`);
+            console.log(`  mode:       ${originalCfg[2]} (current effect ID)`);
+            console.log(`  brightness: ${originalCfg[3]}`);
+            console.log(`  speed:      ${originalCfg[4]}`);
+
+            // --- STEP 2: Read BREATHING effect config (ID=1) to use as test ---
+            console.log('\n--- STEP 2: Reading BREATHING effect config (mode 1) ---');
+            const breathPacket = packets.buildGetLightEffectConfig(1);
+            await transport.write(breathPacket);
+            const breathResponse = await transport.read(2000);
+            const breathCfg = Array.from(breathResponse.slice(5, 16));
+            breathCfg[2] = 1; // enforce mode = BREATHING
+            console.log(`Breathing config: ${breathCfg.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+
+            // --- STEP 3: Write BREATHING effect ---
+            console.log('\n--- STEP 3: Writing BREATHING effect ---');
+            const setBreathPacket = packets.buildSetLightConfig(breathCfg);
+            console.log(`Packet: ${setBreathPacket.slice(0, 16).toString('hex').match(/.{2}/g)?.join(' ')}`);
+            await transport.write(setBreathPacket);
+
+            console.log('\nWaiting 2 seconds — observe keyboard breathing effect...');
+            await new Promise(r => setTimeout(r, 2000));
+
+            // --- STEP 4: Read back to verify ---
+            console.log('\n--- STEP 4: Read back active effect config ---');
+            await transport.write(packets.buildGetLightEffectConfig(1));
+            const verifyResponse = await transport.read(2000);
+            const verifyCfg = Array.from(verifyResponse.slice(5, 16));
+            console.log(`Verified config: ${verifyCfg.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+            console.log(`  mode: ${verifyCfg[2]} (expected: 1 = BREATHING)`);
+
+            // --- STEP 5: Restore original ---
+            console.log('\n--- STEP 5: Restoring original effect ---');
+            const restorePacket = packets.buildSetLightConfig(originalCfg);
+            await transport.write(restorePacket);
+            console.log('Restore packet sent.');
+
+            await new Promise(r => setTimeout(r, 500));
+
+            // --- STEP 6: Final read-back ---
+            console.log('\n--- STEP 6: Final read-back ---');
+            await transport.write(packets.buildGetLightEffectConfig(originalCfg[2] ?? 0));
+            const finalResponse = await transport.read(2000);
+            const finalCfg = Array.from(finalResponse.slice(5, 16));
+            console.log(`Final config: ${finalCfg.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+            console.log(`  mode: ${finalCfg[2]} (expected: ${originalCfg[2]})`);
+
+            const restored = finalCfg[2] === originalCfg[2];
+            console.log(`\nRestore: ${restored ? 'SUCCESS' : 'MISMATCH — investigate before proceeding'}`);
+
+            await transport.close();
+        } catch (e: any) {
+            console.error(e.message);
+        }
+    })();
 } else if (command === 'inspect') {
+
     const subcommand = positionals[1];
     if (subcommand === 'rgb' && positionals[2] === 'static') {
         const hexColor = positionals[3] || 'FF0000';

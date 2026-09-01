@@ -71,10 +71,11 @@ export class NodeHidTransport implements HidTransport {
     async write(report: Buffer): Promise<void> {
         if (!this.device) throw new Error("Device not opened");
 
-        // HARDWARE SAFETY GATE
-        const allowedCommands = [CMD_GET_CONFIG, 0x08, 0x13, 0x14]; // 0x14 is CMD_SET_KEY_RGB
+        // HARDWARE SAFETY GATE — Phase 3A
+        // Permitted: GetConfig, ReadKeymap, ReadRgb, SetSingleKeyRgb, GetLightEffectConfig, SetLightConfig
+        const allowedCommands = [CMD_GET_CONFIG, 0x08, 0x13, 0x14, 0x16, 0x0B];
         if (!allowedCommands.includes(report[2] || 0)) {
-            throw new Error(`HardwareWriteDisabledError: Only GET_CONFIG, READ_KEYMAP, READ_RGB_MAP, and SET_KEY_RGB are permitted in this phase. Rejected command: 0x${(report[2] || 0).toString(16)}`);
+            throw new Error(`HardwareWriteDisabledError: Command 0x${(report[2] || 0).toString(16)} is not permitted in Phase 3A.`);
         }
 
         // WebHID write equivalent in node-hid is often write() or sendFeatureReport().

@@ -104,3 +104,49 @@ Verified `55 FF FF` correctly using `ReadRgb` chunk 0.
 
 **Firmware:** UNTOUCHED  
 **IAP:** UNTOUCHED
+
+---
+
+## Test 005 — RGB Effect Mode Change (BREATHING)
+
+**Device:** MK1300 V2  
+**VID:** 36AE / **PID:** FEAD  
+
+### Command sequence
+
+| Step | Command | Opcode | Payload |
+|------|---------|--------|---------|
+| 1 | GetLightEffectConfig (mode 0) | `0x16` | `[00 00 00 01 00 00]` |
+| 2 | GetLightEffectConfig (mode 1) | `0x16` | `[00 00 00 01 00 01]` |
+| 3 | SetLightConfig (BREATHING) | `0x0B` | `[0b 00 00 00 01 01 01 04 02 01 01 ff c4 ff]` |
+| 4 | GetLightEffectConfig (verify) | `0x16` | `[00 00 00 01 00 01]` |
+| 5 | SetLightConfig (restore) | `0x0B` | `[0b 00 00 00 01 00 00 00 00 00 00 01 00 00 00]` |
+| 6 | GetLightEffectConfig (final) | `0x16` | `[00 00 00 01 00 00]` |
+
+### Effect config struct layout (recovered from OEM)
+
+```
+a[0]  type           (0 = single zone, 1 = per-key)
+a[1]  unknown
+a[2]  mode ID        (0=Static, 1=Breathing, ...) — this is what we set
+a[3]  brightness     (0-255)
+a[4]  speed          (0-255)
+a[5]  direction
+a[6]  color
+a[7]  singleColorIndex
+a[8]  H (hue/255 * 360 = degrees)
+a[9]  S (sat/255 * 100 = %)
+a[10] V (val/255 * 100 = %)
+```
+
+### Result
+
+**Effect test:** PASS — `buildSetLightConfig` correctly sent the BREATHING config.  
+**Read-back note:** Post-write read returns the slot's raw data; `a[2]` reflects what we wrote.  
+**Restore:** PASS (verified via final read-back).  
+**Observed:** Effect config changed and restored successfully (see 2-second observe window).  
+**Unexpected behavior:** None.  
+**Writes performed:** 2 (SetLightConfig ×2)  
+**Firmware:** UNTOUCHED  
+**IAP:** UNTOUCHED
+

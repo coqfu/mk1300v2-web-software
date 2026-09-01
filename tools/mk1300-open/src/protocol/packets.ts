@@ -15,6 +15,38 @@ export function buildGetConfig(): Buffer {
     return createBasePacket(constants.CMD_GET_CONFIG);
 }
 
+/**
+ * OEM: sendDeviceData(6, [22, 0, 0, 0, 1, 0, MODE_ID])
+ * Queries the keyboard's stored config for a given effect mode ID.
+ * The keyboard returns an 11-byte struct starting at response byte 5.
+ */
+export function buildGetLightEffectConfig(modeId: number): Buffer {
+    const packet = createBasePacket(constants.CMD_GET_LIGHT_EFFECT_CONFIG);
+    packet[3] = 0x00;
+    packet[4] = 0x00;
+    packet[5] = 0x00;
+    packet[6] = 0x01;
+    packet[7] = 0x00;
+    packet[8] = modeId & 0xFF;
+    return packet;
+}
+
+/**
+ * OEM: sendDeviceData(6, [11, cfg.length, 0, 0, ...cfg])
+ * cfg is the 11-byte struct from buildGetLightEffectConfig response (bytes 5–15).
+ * cfg[2] = modeId to set active.
+ */
+export function buildSetLightConfig(cfg: number[]): Buffer {
+    const packet = createBasePacket(constants.CMD_SET_LIGHT_CONFIG);
+    packet[3] = cfg.length & 0xFF;
+    packet[4] = 0x00;
+    packet[5] = 0x00;
+    for (let i = 0; i < cfg.length && i + 6 < constants.PACKET_LENGTH; i++) {
+        packet[6 + i] = (cfg[i] ?? 0) & 0xFF;
+    }
+    return packet;
+}
+
 export function buildSetSingleKeyRgb(keyIndex: number, r: number, g: number, b: number): Buffer {
     const packet = createBasePacket(constants.CMD_SET_KEY_RGB);
     packet[3] = 0x03; 
