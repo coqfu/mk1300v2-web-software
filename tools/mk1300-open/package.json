@@ -1,0 +1,21 @@
+{
+  "name": "mk1300-open",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "npx tsc && node tests/protocol/packets.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^7.0.2"
+  }
+}
