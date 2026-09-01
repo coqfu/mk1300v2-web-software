@@ -1,0 +1,44 @@
+{
+  "name": "MK1300v2 Default Keymap",
+  "vendorId": "0x1234",
+  "productId": "0x5678",
+  "layers": [
+    {
+      "name": "Base Layer",
+      "keys": [
+        ["ESC", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "BACKSPACE"],
+        ["TAB", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "\\"],
+        ["CAPS", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'", "ENTER"],
+        ["LSHIFT", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/", "RSHIFT"],
+        ["LCTRL", "LWIN", "LALT", "SPACE", "RALT", "FN", "APP", "RCTRL"]
+      ]
+    },
+    {
+      "name": "Function Layer (FN)",
+      "keys": [
+        ["`", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "DEL"],
+        ["TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "UP", "TRNS", "TRNS"],
+        ["TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "LEFT", "RIGHT", "TRNS"],
+        ["TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "DOWN", "TRNS", "TRNS"],
+        ["TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS", "TRNS"]
+      ]
+    }
+  ],
+  "macros": [
+    {
+      "id": 1,
+      "name": "Copy",
+      "actions": ["LCTRL_DOWN", "C_TAP", "LCTRL_UP"]
+    },
+    {
+      "id": 2,
+      "name": "Paste",
+      "actions": ["LCTRL_DOWN", "V_TAP", "LCTRL_UP"]
+    }
+  ],
+  "lighting": {
+    "mode": "RGB_WAVE",
+    "brightness": 100,
+    "speed": 5
+  }
+}
