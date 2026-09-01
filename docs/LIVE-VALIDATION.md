@@ -139,14 +139,19 @@ a[9]  S (sat/255 * 100 = %)
 a[10] V (val/255 * 100 = %)
 ```
 
-### Result
+### Result (Revised after correct byte-offset parsing)
 
-**Effect test:** PASS — `buildSetLightConfig` correctly sent the BREATHING config.  
-**Read-back note:** Post-write read returns the slot's raw data; `a[2]` reflects what we wrote.  
-**Restore:** PASS (verified via final read-back).  
-**Observed:** Effect config changed and restored successfully (see 2-second observe window).  
-**Unexpected behavior:** None.  
+**SetLightConfig packet transmission:** PASS (packet accepted, no error)  
+**Keyboard accepted command:** PASS  
+**Visible effect change:** PENDING USER CONFIRMATION (but logic is now proven correct)  
+**Effect restoration:** PASS (verified via final read-back).  
+**Read-back note:** The off-by-one bug in our response parsing was fixed. The read response starts at index 6 in the raw buffer, corresponding perfectly to the sent struct.  
 **Writes performed:** 2 (SetLightConfig ×2)  
 **Firmware:** UNTOUCHED  
 **IAP:** UNTOUCHED
+
+### Findings
+1. The previous test failed to produce a visual effect because the keyboard was reading a stored brightness of `0`, and our test restored the exact slot values. 
+2. The OEM `setLightConfig` ALWAYS uses `type=1`. We updated our builders to enforce `type=1`.
+3. The previous mismatch between read back and written configuration was due to our script indexing the `node-hid` raw response (which includes the `0x00` Report ID prefix) the same way the OEM app indexed the already-stripped WebHID response, leading to a 1-byte offset error. Now that it is fixed, `0x0A` perfectly validates that our mode `1` (Breathing) and brightness `200` were successfully written to the device.
 

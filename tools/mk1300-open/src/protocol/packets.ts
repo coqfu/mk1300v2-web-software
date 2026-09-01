@@ -33,8 +33,11 @@ export function buildGetLightEffectConfig(modeId: number): Buffer {
 
 /**
  * OEM: sendDeviceData(6, [11, cfg.length, 0, 0, ...cfg])
- * cfg is the 11-byte struct from buildGetLightEffectConfig response (bytes 5–15).
- * cfg[2] = modeId to set active.
+ * cfg is an 11-byte struct. cfg[2] = modeId to activate.
+ *
+ * NOTE: the firmware uses cfg as-is. Pass the full struct with meaningful values.
+ * For effect-slot data from buildGetLightEffectConfig, override cfg[0]=type and cfg[3]=brightness
+ * to match the UI's always-type=1 behaviour before calling this.
  */
 export function buildSetLightConfig(cfg: number[]): Buffer {
     const packet = createBasePacket(constants.CMD_SET_LIGHT_CONFIG);
@@ -45,6 +48,49 @@ export function buildSetLightConfig(cfg: number[]): Buffer {
         packet[6 + i] = (cfg[i] ?? 0) & 0xFF;
     }
     return packet;
+}
+
+/**
+ * OEM: getLightConfig() = sendDeviceData(6, [10]) -> .slice(5, 16) = 11-byte active config.
+ * This reads the CURRENTLY ACTIVE effect, not a per-slot default.
+ * Use this for read-before-write + restoration sequences.
+ */
+export function buildGetActiveLightConfig(): Buffer {
+    return createBasePacket(constants.CMD_GET_LIGHT_CONFIG);
+}
+
+/**
+ * Typed helper matching the OEM's setLightConfig() UI call pattern.
+ * The OEM always uses type=1 when writing from the UI.
+ * Struct layout: [type, 0, mode, brightness, speed, direction, color, 0, h, s, v]
+ * Special case: if mode=STATIC (0), color is forced to 0.
+ */
+export type LightConfigParams = {
+    mode: number;       // 0=Static, 1=Breathing, 2=Wave, etc.
+    brightness: number; // 0–255
+    speed: number;      // 0–255
+    direction: number;  // 0 or 1
+    color: number;      // 0=off, 1=on (non-static only)
+    h: number;          // hue 0–255
+    s: number;          // saturation 0–255
+    v: number;          // value 0–255
+};
+
+export function buildSetLightConfigFromParams(p: LightConfigParams): Buffer {
+    const cfg = [
+        1,            // type — OEM always sends 1
+        0,            // padding
+        p.mode,
+        p.brightness,
+        p.speed,
+        p.direction,
+        p.mode === 0 ? 0 : p.color,  // OEM forces color=0 for STATIC
+        0,            // padding
+        p.h,
+        p.s,
+        p.v,
+    ];
+    return buildSetLightConfig(cfg);
 }
 
 export function buildSetSingleKeyRgb(keyIndex: number, r: number, g: number, b: number): Buffer {

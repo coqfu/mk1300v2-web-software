@@ -3,7 +3,8 @@ export const COMMAND_GROUP = 0x06;
 
 export const CMD_GET_CONFIG = 0x05;
 export const CMD_READ_KEYMAP = 0x08;
-export const CMD_SET_LIGHT_CONFIG = 0x0B; // Writes effect config struct
+export const CMD_GET_LIGHT_CONFIG = 0x0A; // Reads currently ACTIVE light config (all params)
+export const CMD_SET_LIGHT_CONFIG = 0x0B; // Writes + immediately activates effect config
 export const CMD_FACTORY_RESET = 0x0F;
 export const CMD_SET_KEY_MAPPING = 0x10;
 export const CMD_SET_RGB_MAP = 0x12;

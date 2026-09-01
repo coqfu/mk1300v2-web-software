@@ -37,7 +37,10 @@ if (!command) {
     process.exit(1);
 }
 
-printDryRunBanner();
+// Only print the dry-run banner when hardware mode is NOT active
+if (process.env.MK1300_ALLOW_HARDWARE !== '1') {
+    printDryRunBanner();
+}
 
 import { NodeHidTransport } from './hid/NodeHidTransport.js';
 import * as fs from 'fs';
@@ -104,7 +107,7 @@ if (command === 'info') {
             
             fs.writeFileSync(jsonFile, JSON.stringify(resultData, null, 2));
             
-            console.log("\n=== Response Received ===");
+            console.log(`\n=== Response Received ===`);
             console.log(`Length: ${response.length}`);
             console.log(`Raw: ${response.toString('hex')}`);
             console.log(`\n=== Parsed ===`);
@@ -304,73 +307,99 @@ if (command === 'info') {
             console.error(e.message);
         }
     })();
+} else if (command === 'read-light-config') {
+    (async () => {
+        try {
+            const transport = new NodeHidTransport();
+            await transport.open();
+
+            console.log('\n--- Reading ACTIVE light config (0x0A) ---');
+            const getPacket = packets.buildGetActiveLightConfig();
+            console.log(`Packet: ${getPacket.slice(0, 12).toString('hex').match(/.{2}/g)?.join(' ')}`);
+            await transport.write(getPacket);
+            const getResponse = await transport.read(2000);
+            
+            console.log(`\nResponse (raw ${getResponse.length} bytes):`);
+            console.log(getResponse.toString('hex').match(/.{1,32}/g)?.join('\n'));
+
+            console.log(`\nResponse array:`);
+            const arr = Array.from(getResponse);
+            for (let i = 0; i < 20; i++) {
+                console.log(`  [${i.toString().padStart(2, ' ')}]: 0x${(arr[i] ?? 0).toString(16).padStart(2, '0')}`);
+            }
+
+            await transport.close();
+        } catch (e: any) {
+            console.error(e.message);
+        }
+    })();
 } else if (command === 'test-effect') {
     (async () => {
         try {
             const transport = new NodeHidTransport();
             await transport.open();
 
-            // --- STEP 1: Read current effect config (STATIC mode, ID=0) ---
-            // OEM: sendDeviceData(6, [22, 0, 0, 0, 1, 0, MODE_ID])
-            console.log('\n--- STEP 1: Reading current STATIC effect config (mode 0) ---');
-            const getPacket = packets.buildGetLightEffectConfig(0);
-            console.log(`Packet: ${getPacket.slice(0, 12).toString('hex').match(/.{2}/g)?.join(' ')}`);
-            await transport.write(getPacket);
-            const getResponse = await transport.read(2000);
-            console.log(`Response (raw): ${getResponse.toString('hex')}`);
-
-            // OEM slices response at bytes 5..15 (payload[3..13] in our parser)
-            // Full 65-byte report: [reportId, groupByte, cmdByte, ...data]
-            // payload parsed = report.slice(1) = [groupByte, cmdByte, ...data]
-            // OEM does .slice(5,16) on the full 65-byte array (skipping reportId which is [0])
-            // so that's bytes[5..15] of the 65-byte report = report[5] through report[15]
-            const originalCfg = Array.from(getResponse.slice(5, 16));
-            console.log(`\nOriginal effect config (11 bytes from response[5..15]):`);
-            console.log(originalCfg.map(b => b.toString(16).padStart(2, '0')).join(' '));
-            console.log(`  type:       ${originalCfg[0]}`);
-            console.log(`  mode:       ${originalCfg[2]} (current effect ID)`);
-            console.log(`  brightness: ${originalCfg[3]}`);
+            // --- STEP 1: Read CURRENTLY ACTIVE light config via 0x0A ---
+            // OEM: getLightConfig() = sendDeviceData(6, [10]) -> .slice(5, 16)
+            // This reads the ACTIVE effect (not a slot default).
+            console.log('\n--- STEP 1: Read active light config (0x0A) ---');
+            const readActivePacket = packets.buildGetActiveLightConfig();
+            console.log(`Packet: ${readActivePacket.slice(0, 8).toString('hex').match(/.{2}/g)?.join(' ')}`);
+            await transport.write(readActivePacket);
+            const activeResponse = await transport.read(2000);
+            // The raw buffer starts with Report ID at [0].
+            // OEM code slices the payload starting from [5], but their payload does not include Report ID.
+            // So we need to slice from [6] to [17] (11 bytes).
+            const originalCfg = Array.from(activeResponse.slice(6, 17));
+            console.log(`Active config (bytes 6..16): ${originalCfg.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+            console.log(`  type:       ${originalCfg[0]}  (OEM UI always writes 1)`);
+            console.log(`  mode:       ${originalCfg[2]}  (0=Static, 1=Breathing, ...)`);
+            console.log(`  brightness: ${originalCfg[3]}  (0-255)`);
             console.log(`  speed:      ${originalCfg[4]}`);
 
-            // --- STEP 2: Read BREATHING effect config (ID=1) to use as test ---
-            console.log('\n--- STEP 2: Reading BREATHING effect config (mode 1) ---');
-            const breathPacket = packets.buildGetLightEffectConfig(1);
+            // --- STEP 2: Build BREATHING packet using OEM setLightConfig pattern ---
+            // type=1 (always), mode=1 (Breathing), brightness=200 (~78%), speed=4, direction=0
+            // color=1, h=0, s=0, v=255 (white breathing)
+            console.log('\n--- STEP 2: Build BREATHING packet (type=1, brightness=200) ---');
+            const breathPacket = packets.buildSetLightConfigFromParams({
+                mode: 1, brightness: 200, speed: 4,
+                direction: 0, color: 1, h: 0, s: 0, v: 255
+            });
+            console.log(`Packet (first 16): ${breathPacket.slice(0, 16).toString('hex').match(/.{2}/g)?.join(' ')}`);
+            console.log(`  [3]=length, [6]=type=1, [7]=pad, [8]=mode=1, [9]=brightness=200`);
+
+            // --- STEP 3: Write BREATHING ---
+            console.log('\n--- STEP 3: Sending BREATHING (0x0B) ---');
             await transport.write(breathPacket);
-            const breathResponse = await transport.read(2000);
-            const breathCfg = Array.from(breathResponse.slice(5, 16));
-            breathCfg[2] = 1; // enforce mode = BREATHING
-            console.log(`Breathing config: ${breathCfg.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
 
-            // --- STEP 3: Write BREATHING effect ---
-            console.log('\n--- STEP 3: Writing BREATHING effect ---');
-            const setBreathPacket = packets.buildSetLightConfig(breathCfg);
-            console.log(`Packet: ${setBreathPacket.slice(0, 16).toString('hex').match(/.{2}/g)?.join(' ')}`);
-            await transport.write(setBreathPacket);
+            console.log('\nWaiting 3 seconds — observe keyboard for breathing effect...');
+            await new Promise(r => setTimeout(r, 3000));
 
-            console.log('\nWaiting 2 seconds — observe keyboard breathing effect...');
-            await new Promise(r => setTimeout(r, 2000));
-
-            // --- STEP 4: Read back to verify ---
-            console.log('\n--- STEP 4: Read back active effect config ---');
-            await transport.write(packets.buildGetLightEffectConfig(1));
+            // --- STEP 4: Read back via 0x0A to verify active mode changed ---
+            console.log('\n--- STEP 4: Read-back active config (0x0A) ---');
+            await transport.write(packets.buildGetActiveLightConfig());
             const verifyResponse = await transport.read(2000);
-            const verifyCfg = Array.from(verifyResponse.slice(5, 16));
-            console.log(`Verified config: ${verifyCfg.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+            const verifyCfg = Array.from(verifyResponse.slice(6, 17));
+            console.log(`Config: ${verifyCfg.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
             console.log(`  mode: ${verifyCfg[2]} (expected: 1 = BREATHING)`);
+            console.log(`  brightness: ${verifyCfg[3]}`);
 
-            // --- STEP 5: Restore original ---
-            console.log('\n--- STEP 5: Restoring original effect ---');
-            const restorePacket = packets.buildSetLightConfig(originalCfg);
+            // --- STEP 5: Restore original config ---
+            console.log('\n--- STEP 5: Restoring original config (0x0B) ---');
+            // Restore using raw struct — override type=1 to match OEM write pattern
+            const restoreCfg = [...originalCfg];
+            restoreCfg[0] = 1; // always type=1 per OEM
+            const restorePacket = packets.buildSetLightConfig(restoreCfg);
             await transport.write(restorePacket);
-            console.log('Restore packet sent.');
+            console.log('Restore sent.');
 
             await new Promise(r => setTimeout(r, 500));
 
-            // --- STEP 6: Final read-back ---
-            console.log('\n--- STEP 6: Final read-back ---');
-            await transport.write(packets.buildGetLightEffectConfig(originalCfg[2] ?? 0));
+            // --- STEP 6: Final verification ---
+            console.log('\n--- STEP 6: Final read-back (0x0A) ---');
+            await transport.write(packets.buildGetActiveLightConfig());
             const finalResponse = await transport.read(2000);
-            const finalCfg = Array.from(finalResponse.slice(5, 16));
+            const finalCfg = Array.from(finalResponse.slice(6, 17));
             console.log(`Final config: ${finalCfg.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
             console.log(`  mode: ${finalCfg[2]} (expected: ${originalCfg[2]})`);
 

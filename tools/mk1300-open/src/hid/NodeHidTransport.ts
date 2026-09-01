@@ -52,13 +52,11 @@ export class NodeHidTransport implements HidTransport {
         this.devicePath = target.path;
         this.device = new hid.HID(target.path);
         
-        console.log(`\nOpened MK1300 V2`);
+        console.log(`\nOpened MK1300 V2  [LIVE HARDWARE]`);
         console.log(`VID: ${MK1300_VID.toString(16).toUpperCase()}`);
         console.log(`PID: ${MK1300_PID.toString(16).toUpperCase()}`);
         console.log(`Usage Page: ${USAGE_PAGE_KEYBOARD.toString(16).toUpperCase()}`);
-        console.log(`Usage: ${USAGE_KEYBOARD.toString(16).padStart(4, '0')}`);
-        console.log(`\nREAD-ONLY MODE`);
-        console.log(`Writes disabled\n`);
+        console.log(`Usage: ${USAGE_KEYBOARD.toString(16).padStart(4, '0')}\n`);
     }
 
     async close(): Promise<void> {
@@ -72,8 +70,10 @@ export class NodeHidTransport implements HidTransport {
         if (!this.device) throw new Error("Device not opened");
 
         // HARDWARE SAFETY GATE — Phase 3A
-        // Permitted: GetConfig, ReadKeymap, ReadRgb, SetSingleKeyRgb, GetLightEffectConfig, SetLightConfig
-        const allowedCommands = [CMD_GET_CONFIG, 0x08, 0x13, 0x14, 0x16, 0x0B];
+        // Permitted: GetConfig, ReadKeymap, ReadRgb, SetSingleKeyRgb,
+        //            GetActiveLightConfig (0x0A), SetLightConfig (0x0B),
+        //            GetLightEffectConfig (0x16)
+        const allowedCommands = [CMD_GET_CONFIG, 0x08, 0x0A, 0x0B, 0x13, 0x14, 0x16];
         if (!allowedCommands.includes(report[2] || 0)) {
             throw new Error(`HardwareWriteDisabledError: Command 0x${(report[2] || 0).toString(16)} is not permitted in Phase 3A.`);
         }
