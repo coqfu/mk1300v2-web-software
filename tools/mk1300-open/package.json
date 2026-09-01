@@ -7,7 +7,7 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "npx tsc && node tests/protocol/packets.test.js"
+    "test": "npx tsc && node tests/protocol/packets.test.js && node tests/protocol/responses.test.js && node tests/mock/MK1300V2.test.js"
   },
   "keywords": [],
   "author": "",
