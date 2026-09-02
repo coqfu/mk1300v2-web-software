@@ -24,18 +24,27 @@ Through static analysis of the OEM software, we have discovered:
 
 ## Roadmap & Status
 
-- [x] Analyze vendor application
-- [x] Discover hidden device identifiers
-- [x] Identify firmware update metadata
-- [x] Document initial reverse-engineering findings
+- [x] Analyze vendor application ([docs/REVERSE_ENGINEERING.md](docs/REVERSE_ENGINEERING.md))
+- [x] Discover hidden device identifiers ([docs/HARDWARE.md](docs/HARDWARE.md))
+- [x] Identify firmware update metadata ([docs/FIRMWARE.md](docs/FIRMWARE.md))
+- [x] Document initial reverse-engineering findings ([docs/REVERSE_ENGINEERING.md](docs/REVERSE_ENGINEERING.md))
+
+- [x] Map core HID protocol ([docs/PROTOCOL.md](docs/PROTOCOL.md))
+- [x] Build standalone Linux tool ([docs/LINUX.md](docs/LINUX.md))
+- [x] Verify GetConfig ([docs/LIVE-VALIDATION.md](docs/LIVE-VALIDATION.md))
+- [x] Verify keymap read ([docs/LIVE-VALIDATION.md](docs/LIVE-VALIDATION.md))
+- [x] Verify RGB layout read ([docs/LIVE-VALIDATION.md](docs/LIVE-VALIDATION.md))
+- [x] Verify single-key RGB write + read-back + restoration ([docs/LIVE-VALIDATION.md](docs/LIVE-VALIDATION.md))
+- [x] Reconstruct light/effect configuration protocol ([docs/LIVE-VALIDATION.md](docs/LIVE-VALIDATION.md))
+- [ ] Verify visible RGB effect change
 - [ ] Fully map USB protocol
-- [ ] Build standalone Linux tool
-- [ ] Verify RGB commands
-- [ ] Document HID protocol
+- [ ] Document complete HID protocol
 - [ ] Implement OpenRGB support
+- [ ] Verify batch RGB commands
+- [ ] Map all RGB effects
 - [ ] Investigate firmware architecture
 - [ ] Investigate alternative firmware feasibility
-- [ ] Build automated protocol tests
+- [x] Build automated protocol tests
 - [ ] Community hardware verification
 
 *(Note: Items are only marked complete when physically verified and peer-reviewed.)*
